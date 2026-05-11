@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: nexthire-ai-backend
+    env: docker
+    branch: main
+    region: oregon
+    rootDir: backend
+    buildCommand: docker build -t nexthire-backend .
+    startCommand: docker run -p $PORT:5000 nexthire-backend

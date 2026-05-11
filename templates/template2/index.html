@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ name }} - Resume</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page">
+      <header class="header">
+        <h1 class="name">{{ name }}</h1>
+        <div class="contact">
+          <span class="contact-item">{{ email }}</span>
+          <span class="divider">•</span>
+          <span class="contact-item">{{ phone }}</span>
+          <span class="divider">•</span>
+          <span class="contact-item">{{ linkedin }}</span>
+        </div>
+      </header>
+
+      <section class="objective">
+        <h2 class="section-title">Objective</h2>
+        <p class="text">{{ objective }}</p>
+      </section>
+
+      <main class="grid">
+        <aside class="sidebar">
+          <h2 class="section-title">Skills</h2>
+          <ul class="skills">
+            {% for skill in skills %}
+            <li class="skill">
+              <div class="skill-name">{{ skill.name }}</div>
+              <div class="skill-level">{{ skill.level }}</div>
+            </li>
+            {% endfor %}
+          </ul>
+        </aside>
+
+        <section class="content">
+          <div class="block">
+            <h2 class="section-title">Experience</h2>
+            <div class="timeline">
+              {% for exp in experience %}
+              <div class="t-item">
+                <div class="dot"></div>
+                <div class="t-body">
+                  <div class="t-title">{{ exp.title }}</div>
+                  <div class="t-sub">{{ exp.company }}</div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div class="block">
+            <h2 class="section-title">Education</h2>
+            <div class="timeline">
+              {% for edu in education %}
+              <div class="t-item">
+                <div class="dot"></div>
+                <div class="t-body">
+                  <div class="t-title">{{ edu.degree }}</div>
+                  <div class="t-sub">{{ edu.institution }}</div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,125 @@
+@page {
+  margin: 22mm 16mm;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.header {
+  padding: 14px 0 12px;
+  border-bottom: 2px solid #0f172a;
+}
+
+.name {
+  margin: 0;
+  font-size: 33px;
+  line-height: 1.12;
+  letter-spacing: 0.2px;
+}
+
+.meta {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: #334155;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sep {
+  color: #94a3b8;
+}
+
+.summary {
+  margin-top: 14px;
+  padding: 12px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.summary-text {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.main {
+  margin-top: 14px;
+}
+
+.section {
+  margin-top: 14px;
+}
+
+.section-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.chips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+}
+
+.chip-name {
+  font-weight: 700;
+}
+
+.chip-level {
+  color: #475569;
+}
+
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.entry {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.entry-title {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.entry-right {
+  font-size: 12.5px;
+  color: #334155;
+  white-space: nowrap;
+  text-align: right;
+}
