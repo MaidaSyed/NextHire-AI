@@ -102,7 +102,7 @@ function TextInput({
         placeholder={placeholder}
         inputMode={inputMode}
         className={[
-          'w-full rounded-xl border bg-emerald-50/5 px-4 py-3 text-sm text-emerald-50 placeholder:text-emerald-100/30 outline-none',
+          'w-full min-h-[48px] rounded-xl border bg-emerald-50/5 px-4 py-3 text-sm text-emerald-50 placeholder:text-emerald-100/30 outline-none',
           error ? 'border-red-500/60 focus:border-red-400' : 'border-neon-500/15 focus:border-neon-500/40',
         ].join(' ')}
       />
@@ -649,7 +649,7 @@ function ResumeBuilder() {
                   {/* Form Content */}
                   <div className="grid gap-6">
             {step === 0 ? (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 items-start">
                 <TextInput
                   label="Full Name"
                   value={personal.name}
@@ -688,7 +688,7 @@ function ResumeBuilder() {
                   inputMode="tel"
                   error={err('personal.phone')}
                 />
-                <div className="md:col-span-2">
+                <div className="sm:col-span-2 col-span-1">
                   <TextInput
                     label="LinkedIn"
                     value={personal.linkedin}
@@ -728,7 +728,7 @@ function ResumeBuilder() {
             ) : null}
 
             {step === 2 ? (
-              <div className="grid gap-4">
+              <div className="grid gap-4 items-start">
                 {err('education.required') ? (
                   <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
                     {err('education.required')}
@@ -748,7 +748,7 @@ function ResumeBuilder() {
                         Remove
                       </SmallButton>
                     </div>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 items-start">
                       <TextInput
                         label="Degree"
                         value={edu.degree}
@@ -817,7 +817,7 @@ function ResumeBuilder() {
             ) : null}
 
             {step === 3 ? (
-              <div className="grid gap-4">
+              <div className="grid gap-4 items-start">
                 {err('experience.required') ? (
                   <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
                     {err('experience.required')}
@@ -845,7 +845,7 @@ function ResumeBuilder() {
                         </SmallButton>
                       </div>
                     </div>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div className="mt-4 grid gap-4 sm:grid-cols-2 items-start">
                       <TextInput
                         label="Job Title"
                         value={exp.title}
@@ -929,11 +929,11 @@ function ResumeBuilder() {
             ) : null}
 
             {step === 4 ? (
-              <div className="grid gap-4">
+              <div className="grid gap-4 items-start">
                 {skills.map((s, idx) => (
                   <div
                     key={idx}
-                    className="grid gap-4 rounded-2xl border border-neon-500/15 bg-emerald-50/5 p-4 md:grid-cols-3"
+                    className="grid gap-4 rounded-2xl border border-neon-500/15 bg-emerald-50/5 p-4 sm:grid-cols-3 items-start"
                   >
                     <TextInput
                       label="Skill Name"
@@ -945,7 +945,7 @@ function ResumeBuilder() {
                       placeholder="e.g. Python"
                       error={err(`skills.${idx}.name`)}
                     />
-                    <label className="grid gap-2 md:col-span-2">
+                    <label className="grid gap-2 sm:col-span-2">
                       <span className="text-sm text-emerald-100/70">Level</span>
                       <select
                         value={s.level}
@@ -963,16 +963,25 @@ function ResumeBuilder() {
                             ? 'border-red-500/60 focus:border-red-400'
                             : 'border-neon-500/15 focus:border-neon-500/40',
                         ].join(' ')}
+                        style={{
+                          colorScheme: 'dark',
+                        }}
                       >
-                        <option>Beginner</option>
-                        <option>Intermediate</option>
-                        <option>Advanced</option>
+                        <option value="Beginner" style={{ color: '#000', backgroundColor: '#fff' }}>
+                          Beginner
+                        </option>
+                        <option value="Intermediate" style={{ color: '#000', backgroundColor: '#fff' }}>
+                          Intermediate
+                        </option>
+                        <option value="Advanced" style={{ color: '#000', backgroundColor: '#fff' }}>
+                          Advanced
+                        </option>
                       </select>
                       {err(`skills.${idx}.level`) ? (
                         <div className="text-xs text-red-200">{err(`skills.${idx}.level`)}</div>
                       ) : null}
                     </label>
-                    <div className="md:col-span-3">
+                    <div className="sm:col-span-3">
                       <SmallButton
                         onClick={() => (touch(), setSkills((prev) => prev.filter((_, i) => i !== idx)))}
                         disabled={skills.length === 1}
