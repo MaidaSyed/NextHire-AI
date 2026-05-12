@@ -110,10 +110,7 @@ function Home() {
         className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-neon-500/10 blur-[90px]"
         style={{ transform: 'translate3d(calc(-50% + var(--px, 0px)), var(--py, 0px), 0)' }}
       />
-      <div
-        className="absolute -bottom-48 right-[-90px] h-[520px] w-[520px] rounded-full bg-emerald-400/10 blur-[110px]"
-        style={{ transform: 'translate3d(var(--px, 0px), calc(var(--py, 0px) * -1), 0)' }}
-      />
+
 
       <div className="relative mx-auto max-w-6xl px-5 py-14 md:py-20">
         <motion.div

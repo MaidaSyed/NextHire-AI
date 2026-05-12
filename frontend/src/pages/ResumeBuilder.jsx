@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import TemplateSelector from '../components/TemplateSelector'
+import LivePreview from '../components/LivePreview'
 
 const STORAGE_KEY = 'nexthire_resume_builder_v1'
 const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
@@ -143,6 +145,11 @@ function SmallButton({ children, onClick, disabled = false }) {
 }
 
 function ResumeBuilder() {
+  const [showTemplateSelector, setShowTemplateSelector] = useState(true)
+
+  const [showConfirmPDF, setShowConfirmPDF] = useState(false)
+  const [templateIdBeingConfirmed, setTemplateIdBeingConfirmed] = useState(null)
+
   const steps = useMemo(
     () => [
       'Personal Info',
@@ -253,6 +260,19 @@ function ResumeBuilder() {
     setTemplateId('template1')
     setError('')
     setDirty(false)
+    setShowTemplateSelector(true)
+  }
+
+  function handleSelectTemplate(tid) {
+    setTemplateId(tid)
+    setStep(0)
+    setShowTemplateSelector(false)
+    touch()
+  }
+
+  function handleSwitchTemplate(tid) {
+    setTemplateId(tid)
+    touch()
   }
 
   function validate() {
@@ -466,11 +486,18 @@ function ResumeBuilder() {
 
   async function handleGenerateResume() {
     setError('')
+    setTemplateIdBeingConfirmed(templateId)
+    setShowConfirmPDF(true)
+  }
+
+  async function confirmAndGenerateResume() {
+    setError('')
     try {
       setGenerateBusy(true)
+      setShowConfirmPDF(false)
 
       const payload = {
-        template_id: templateId,
+        template_id: templateIdBeingConfirmed,
         data: {
           name: _trim(personal.name),
           email: _trim(personal.email),
@@ -524,76 +551,103 @@ function ResumeBuilder() {
   }
 
   return (
-    <div className="min-h-screen px-5 py-14">
-      <div className="mx-auto max-w-5xl">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-sm text-emerald-100/70 hover:text-neon-500 transition-colors"
-        >
-          <span aria-hidden="true">←</span> Back to Home
-        </Link>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-          className="mt-8 card-glass rounded-2xl p-7 md:p-9"
-        >
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h2 className="font-display text-3xl font-semibold text-emerald-50">
-                NextHire AI Resume Builder
-              </h2>
-              <p className="mt-2 text-sm text-emerald-100/70">
-                Step-by-step resume builder with AI suggestions and PDF export.
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={clearAll}
-                className="rounded-xl border border-neon-500/20 bg-emerald-50/5 px-4 py-2 text-xs text-emerald-100/75 hover:border-neon-500/40 hover:text-emerald-50"
+    <>
+      {/* Template Selector Screen */}
+      {showTemplateSelector ? (
+        <TemplateSelector
+          selectedTemplate={templateId}
+          onSelectTemplate={handleSelectTemplate}
+        />
+      ) : (
+        /* Two-Column Layout: Form + Preview */
+        <div className="min-h-screen flex flex-col lg:flex-row">
+          {/* Header */}
+          <div className="border-b border-neon-500/10 bg-emerald-950/30 px-5 py-4">
+            {/* <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 text-sm text-emerald-100/70 hover:text-neon-500 transition-colors"
               >
-                Clear All Data
-              </button>
-              <div className="grid text-right">
-                <div className="text-xs text-emerald-100/45">Step {step + 1} / {steps.length}</div>
-                <div className="text-[11px] text-emerald-100/35">{dirty ? 'Auto-save on' : 'Not saved yet'}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-2">
-            <div className="flex flex-wrap gap-2">
-              {steps.map((s, i) => (
+                <span aria-hidden="true">←</span> Back to Home
+              </Link>
+              <div className="flex items-center gap-3">
                 <button
-                  key={s}
                   type="button"
-                  onClick={() => setStep(i)}
-                  className={[
-                    'rounded-full border px-3 py-1 text-xs transition-colors',
-                    i === step
-                      ? 'border-neon-500/40 bg-neon-500/10 text-emerald-50'
-                      : i < step && !stepHasErrors(allErrors, i)
-                        ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-50'
-                        : i < step && stepHasErrors(allErrors, i)
-                          ? 'border-red-500/50 bg-red-500/10 text-red-100'
-                          : 'border-neon-500/15 bg-emerald-50/5 text-emerald-100/60 hover:border-neon-500/30 hover:text-emerald-50',
-                  ].join(' ')}
+                  onClick={() => setShowTemplateSelector(true)}
+                  className="rounded-lg border border-neon-500/20 bg-emerald-50/5 px-3 py-2 text-xs text-emerald-100/75 hover:border-neon-500/40 hover:text-emerald-50"
                 >
-                  {s}
+                  Change Template
                 </button>
-              ))}
-            </div>
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="rounded-lg border border-neon-500/20 bg-emerald-50/5 px-3 py-2 text-xs text-emerald-100/75 hover:border-neon-500/40 hover:text-emerald-50"
+                >
+                  Clear All Data
+                </button>
+              </div>
+            </div> */}
           </div>
 
-          {error ? (
-            <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
-              {error}
-            </div>
-          ) : null}
+          {/* Main Content */}
+          <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
+            {/* Left: Form */}
+            <div className="flex-1 overflow-auto px-5 py-8 lg:px-6">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 text-sm text-emerald-100/70 hover:text-neon-500 transition-colors"
+              >
+                <span aria-hidden="true">←</span> Back to Home
+              </Link>
+              <div className="mx-auto max-w-3xl">
+              
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.35 }}
+                >
+                  <div className="mb-6 mt-6">
+                    <h2 className="font-display text-2xl font-semibold text-emerald-50">
+                      Build Your Resume
+                    </h2>
+                    <p className="mt-2 text-sm text-emerald-100/70">
+                      Fill in your details. The preview updates in real-time.
+                    </p>
+                  </div>
 
-          <div className="mt-6 grid gap-6">
+                  {/* Step Navigation */}
+                  <div className="mb-6">
+                    <div className="flex flex-wrap gap-2">
+                      {steps.map((s, i) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setStep(i)}
+                          className={[
+                            'rounded-full border px-3 py-1 text-xs transition-colors',
+                            i === step
+                              ? 'border-neon-500/40 bg-neon-500/10 text-emerald-50'
+                              : i < step && !stepHasErrors(allErrors, i)
+                                ? 'border-emerald-400/50 bg-emerald-400/10 text-emerald-50'
+                                : i < step && stepHasErrors(allErrors, i)
+                                  ? 'border-red-500/50 bg-red-500/10 text-red-100'
+                                  : 'border-neon-500/15 bg-emerald-50/5 text-emerald-100/60 hover:border-neon-500/30 hover:text-emerald-50',
+                          ].join(' ')}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {error ? (
+                    <div className="mb-6 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  {/* Form Content */}
+                  <div className="grid gap-6">
             {step === 0 ? (
               <div className="grid gap-4 md:grid-cols-2">
                 <TextInput
@@ -1071,29 +1125,134 @@ function ResumeBuilder() {
                 </div>
               </div>
             ) : null}
-          </div>
+                  </div>
 
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={back}
-              disabled={step === 0}
-              className="rounded-xl border border-neon-500/20 bg-emerald-50/5 px-5 py-3 text-sm text-emerald-100/80 hover:border-neon-500/40 hover:text-emerald-50 disabled:opacity-50 disabled:hover:border-neon-500/20"
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              onClick={next}
-              disabled={step === steps.length - 1 || !currentStepValid}
-              className="rounded-xl bg-emerald-50/10 px-5 py-3 text-sm text-emerald-50 hover:bg-emerald-50/15 disabled:opacity-50"
-            >
-              Next
-            </button>
+                  {/* Footer Navigation */}
+                  <div className="mt-8 flex flex-wrap items-center justify-between gap-3 pb-6">
+                    <button
+                      type="button"
+                      onClick={back}
+                      disabled={step === 0}
+                      className="rounded-xl border border-neon-500/20 bg-emerald-50/5 px-5 py-3 text-sm text-emerald-100/80 hover:border-neon-500/40 hover:text-emerald-50 disabled:opacity-50 disabled:hover:border-neon-500/20"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={next}
+                      disabled={step === steps.length - 1 || !currentStepValid}
+                      className="rounded-xl bg-emerald-50/10 px-5 py-3 text-sm text-emerald-50 hover:bg-emerald-50/15 disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+
+                  <div className="mt-8 lg:hidden">
+                    <LivePreview
+                      templateId={templateId}
+                      data={{
+                        name: personal.name,
+                        email: personal.email,
+                        phone: personal.phone,
+                        linkedin: personal.linkedin,
+                        location: personal.location,
+                        objective,
+                        education,
+                        experience,
+                        skills,
+                        projects,
+                      }}
+                      onSwitchTemplate={handleSwitchTemplate}
+                    />
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Right: Live Preview */}
+            <div className="hidden lg:flex lg:w-[42rem] border-l border-neon-500/10 bg-emerald-950/20 overflow-hidden flex-col">
+              <LivePreview
+                templateId={templateId}
+                data={{
+                  name: personal.name,
+                  email: personal.email,
+                  phone: personal.phone,
+                  linkedin: personal.linkedin,
+                  location: personal.location,
+                  objective,
+                  education,
+                  experience,
+                  skills,
+                  projects,
+                }}
+                onSwitchTemplate={handleSwitchTemplate}
+              />
+            </div>
           </div>
-        </motion.div>
-      </div>
-    </div>
+        </div>
+      )}
+
+      {/* PDF Confirmation Modal */}
+      <AnimatePresence>
+        {showConfirmPDF && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="card-glass rounded-3xl border border-neon-500/20 p-6 max-w-md shadow-xl"
+            >
+              <div className="text-center">
+                <div className="text-4xl mb-3">📄</div>
+                <h3 className="text-xl font-semibold text-emerald-50">Use this template?</h3>
+                
+                <div className="mt-4 rounded-2xl border border-neon-500/15 bg-emerald-50/5 p-4 text-left">
+                  <div className="text-xs text-emerald-100/70">Selected Template:</div>
+                  <div className="mt-2 text-lg font-semibold text-neon-100">
+                    {templateIdBeingConfirmed === 'template1' && 'Modern Minimal'}
+                    {templateIdBeingConfirmed === 'template2' && 'Corporate Professional'}
+                    {templateIdBeingConfirmed === 'template3' && 'Creative Designer'}
+                    {templateIdBeingConfirmed === 'template4' && 'ATS Friendly'}
+                  </div>
+
+                  <div className="mt-3 text-xs text-emerald-100/60">
+                    Your resume will be generated and downloaded as a PDF file.
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={confirmAndGenerateResume}
+                    disabled={generateBusy}
+                    className="rounded-xl bg-neon-500 px-6 py-3 font-medium text-black hover:brightness-110 disabled:opacity-60"
+                  >
+                    {generateBusy ? 'Generating...' : 'Confirm Template'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowConfirmPDF(false)
+                      setShowTemplateSelector(true)
+                    }}
+                    disabled={generateBusy}
+                    className="rounded-xl border border-neon-500/20 bg-emerald-50/5 px-6 py-3 font-medium text-emerald-100/80 hover:border-neon-500/40 hover:text-emerald-50 disabled:opacity-60"
+                  >
+                    Choose Another
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }
 
