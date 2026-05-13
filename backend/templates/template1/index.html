@@ -1,31 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ name }} - Resume</title>
-    <link rel="stylesheet" href="style.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="page">
+        <!-- Left Sidebar -->
         <aside class="sidebar">
             <header class="sidebar-header">
-                <h1 class="name">{{ name | upper }}</h1>
+                <h1 class="name">{{ name }}</h1>
                 <p class="job-title">{{ objective }}</p>
             </header>
 
             <section class="sidebar-section">
-                <h2 class="sidebar-title">DETAILS</h2>
-                <div class="contact-info">
-                    <p>{{ email }}</p>
-                    <p>{{ phone }}</p>
-                    <p>{{ address }}</p>
+                <h2 class="section-heading">DETAILS</h2>
+                <div class="details-content">
+                    {% if email %}
+                    <p class="detail-item">
+                        <span class="icon">✉</span>{{ email }}
+                    </p>
+                    {% endif %}
+                    {% if phone %}
+                    <p class="detail-item">
+                        <span class="icon">☎</span>{{ phone }}
+                    </p>
+                    {% endif %}
+                    {% if linkedin %}
+                    <p class="detail-item">
+                        <span class="icon">🔗</span><a href="{{ linkedin }}" target="_blank">LinkedIn</a>
+                    </p>
+                    {% endif %}
                 </div>
             </section>
 
             <section class="sidebar-section">
-                <h2 class="sidebar-title">SKILLS</h2>
+                <h2 class="section-heading">SKILLS</h2>
                 <ul class="skills-list">
                     {% for skill in skills %}
                     <li>{{ skill.name }}</li>
@@ -34,38 +46,53 @@
             </section>
         </aside>
 
+        <!-- Main Content -->
         <main class="main-content">
-            <section class="main-section">
-                <h2 class="section-title">SUMMARY</h2>
-                <p class="summary-text">{{ summary }}</p>
+            {% if objective %}
+            <section class="content-section">
+                <h2 class="content-heading">SUMMARY</h2>
+                <p class="summary-text">{{ objective }}</p>
             </section>
+            {% endif %}
 
-            <section class="main-section">
-                <h2 class="section-title">EXPERIENCE</h2>
+            {% if experience %}
+            <section class="content-section">
+                <h2 class="content-heading">EXPERIENCE</h2>
                 {% for exp in experience %}
                 <div class="experience-item">
-                    <p class="date">{{ exp.date_range }}</p>
-                    <h3 class="role">{{ exp.title }}</h3>
-                    <p class="location">{{ exp.company }}, {{ exp.location }}</p>
-                    <ul class="bullet-points">
-                        {% for bullet in exp.bullets %}
-                        <li>{{ bullet }}</li>
+                    <div class="experience-header">
+                        <h3 class="job-title-main">{{ exp.title }}</h3>
+                        <span class="date-range">{{ exp.startYear }}{% if exp.endYear %} — {{ exp.endYear }}{% else %} — Current{% endif %}</span>
+                    </div>
+                    <p class="company-name">{{ exp.company }}</p>
+                    {% if exp.description %}
+                    <ul class="description-list">
+                        {% for line in exp.description.split('\n') %}
+                        {% if line.strip() %}
+                        <li>{{ line.strip() }}</li>
+                        {% endif %}
                         {% endfor %}
                     </ul>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </section>
+            {% endif %}
 
-            <section class="main-section">
-                <h2 class="section-title">EDUCATION</h2>
+            {% if education %}
+            <section class="content-section">
+                <h2 class="content-heading">EDUCATION</h2>
                 {% for edu in education %}
                 <div class="education-item">
-                    <p class="date">{{ edu.dates }}</p>
-                    <h3 class="degree">{{ edu.degree }}</h3>
-                    <p class="location">{{ edu.institution }}, {{ edu.location }}</p>
+                    <div class="education-header">
+                        <h3 class="degree-name">{{ edu.degree }}</h3>
+                        <span class="date-range">{{ edu.startYear }}{% if edu.endYear %} — {{ edu.endYear }}{% endif %}</span>
+                    </div>
+                    <p class="institution-name">{{ edu.institution }}</p>
                 </div>
                 {% endfor %}
             </section>
+            {% endif %}
         </main>
     </div>
 </body>

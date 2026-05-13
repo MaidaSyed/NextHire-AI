@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 
 const TEMPLATE_LABELS = {
   template1: 'Modern Minimal',
@@ -329,98 +329,66 @@ function Template4Preview({ data }) {
   const visibleSkills = skills.filter((skill) => hasValue(skill?.name))
   const visibleProjects = projects.filter((project) => hasValue(project?.name) || hasValue(project?.description))
 
+  // Render left-sidebar / right-content layout to match backend template4
   return (
-    <div className="h-full w-full bg-white text-slate-900" style={{ padding: '22mm 16mm' }}>
-      <header className="border-b-2 border-slate-900 pb-3">
-        <h1 className="text-[33px] leading-[1.1] font-semibold tracking-[0.2px]">{name || 'Your Name'}</h1>
-        <div className="mt-1.5 flex flex-wrap gap-x-2 gap-y-1 text-[12.5px] text-slate-600">
-          {location ? <span>{location}</span> : null}
-          {email ? <span className="text-slate-400">|</span> : null}
-          {email ? <span>{email}</span> : null}
-          {phone ? <span className="text-slate-400">|</span> : null}
-          {phone ? <span>{phone}</span> : null}
-          {linkedin ? <span className="text-slate-400">|</span> : null}
-          {linkedin ? <span>{linkedin}</span> : null}
-        </div>
-      </header>
+    <div className="h-full w-full bg-white text-slate-900" style={{ minHeight: '297mm' }}>
+      <div className="flex" style={{ padding: '22mm 16mm' }}>
+        <aside className="w-[38%] pr-6">
+          <div className="mb-6 border-b pb-4">
+            <h1 className="text-[32px] font-serif font-bold text-[#5d3a6d]">{name || 'Your Name'}</h1>
+            {objective ? <p className="text-[12px] text-slate-600 mt-2 uppercase tracking-wider">{objective}</p> : null}
+          </div>
 
-      {objective ? (
-        <section className="mt-4 rounded-lg border border-slate-200 px-3 py-3">
-          <h2 className="text-[13px] uppercase tracking-[0.8px] text-slate-900">Professional Summary</h2>
-          <p className="mt-1.5 text-[13px] leading-6 text-slate-700">{objective}</p>
-        </section>
-      ) : null}
+          {hasEntries(experience, ['title', 'company', 'description']) ? (
+            <section className="mb-6">
+              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b pb-2">Experience</h2>
+              <div className="mt-3 space-y-3">
+                {experience.map((job, idx) => (
+                  <div key={`exp-${idx}`} className="pb-2 border-b last:border-0">
+                    <div className="text-[11px] font-semibold">{job?.title || 'Job Title'}</div>
+                    <div className="text-[10px] text-slate-600">{job?.company || 'Company'}</div>
+                    {hasValue(job?.description) ? <p className="mt-1 text-[10px] text-slate-600 whitespace-pre-wrap">{job.description}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-      <main className="mt-4 space-y-4">
-        {visibleSkills.length > 0 ? (
-          <section>
-            <h2 className="text-[13px] uppercase tracking-[0.8px] text-slate-900">Core Skills</h2>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {visibleSkills.map((skill, index) => (
-                <span key={`${skill.name}-${index}`} className="inline-flex items-baseline gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-[12.5px]">
-                  <span className="font-semibold">{skill.name}</span>
-                  <span className="text-slate-600">{skill.level}</span>
-                </span>
-              ))}
-            </div>
-          </section>
-        ) : null}
+          {objective ? (
+            <section className="mb-6">
+              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b pb-2">Summary</h2>
+              <p className="mt-2 text-[10px] text-slate-600">{objective}</p>
+            </section>
+          ) : null}
 
-        {hasEntries(experience, ['title', 'company', 'description']) ? (
-          <section>
-            <h2 className="text-[13px] uppercase tracking-[0.8px] text-slate-900">Experience</h2>
-            <div className="mt-2 space-y-2.5">
-              {experience.map((job, index) => {
-                if (!hasValue(job?.title) && !hasValue(job?.company) && !hasValue(job?.description)) return null
-                return (
-                  <article key={`${job?.title || 'exp'}-${index}`} className="flex justify-between gap-4 rounded-lg border border-slate-200 px-3 py-2.5">
-                    <div>
-                      <div className="text-[13px] font-semibold leading-5">{job?.title || 'Job Title'}</div>
-                      {hasValue(job?.description) ? <p className="mt-1 max-w-[420px] text-[12px] leading-5 text-slate-700 whitespace-pre-wrap">{job.description}</p> : null}
-                    </div>
-                    <div className="whitespace-nowrap text-[12.5px] text-slate-700">{job?.company || 'Company'}</div>
-                  </article>
-                )
-              })}
-            </div>
-          </section>
-        ) : null}
+          {visibleSkills.length > 0 ? (
+            <section className="mb-6">
+              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b pb-2">Skills</h2>
+              <ul className="mt-2 text-[10px] text-slate-600 list-disc pl-5">
+                {visibleSkills.map((s, i) => (
+                  <li key={`skill-${i}`}>{s.name}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </aside>
 
-        {hasEntries(education, ['degree', 'institution']) ? (
-          <section>
-            <h2 className="text-[13px] uppercase tracking-[0.8px] text-slate-900">Education</h2>
-            <div className="mt-2 space-y-2.5">
-              {education.map((item, index) => {
-                if (!hasValue(item?.degree) && !hasValue(item?.institution)) return null
-                return (
-                  <article key={`${item?.degree || 'edu'}-${index}`} className="flex justify-between gap-4 rounded-lg border border-slate-200 px-3 py-2.5">
-                    <div>
-                      <div className="text-[13px] font-semibold leading-5">{item?.degree || 'Degree'}</div>
-                      {formatRange(item?.startYear, item?.endYear) ? <div className="mt-0.5 text-[12px] text-slate-600">{formatRange(item?.startYear, item?.endYear)}</div> : null}
-                    </div>
-                    <div className="whitespace-nowrap text-[12.5px] text-slate-700">{item?.institution || 'University'}</div>
-                  </article>
-                )
-              })}
-            </div>
-          </section>
-        ) : null}
-
-        {visibleProjects.length > 0 ? (
-          <section>
-            <h2 className="text-[13px] uppercase tracking-[0.8px] text-slate-900">Projects</h2>
-            <div className="mt-2 space-y-2.5">
-              {visibleProjects.map((project, index) => (
-                <article key={`${project?.name || 'project'}-${index}`} className="rounded-lg border border-slate-200 px-3 py-2.5">
-                  <div className="text-[13px] font-semibold leading-5">{project?.name || 'Project Name'}</div>
-                  {hasValue(project?.technologies) ? <div className="mt-0.5 text-[12px] text-slate-600">{project.technologies}</div> : null}
-                  {hasValue(project?.description) ? <p className="mt-1 text-[12px] leading-5 text-slate-700 whitespace-pre-wrap">{project.description}</p> : null}
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
-      </main>
+        <main className="flex-1 pl-6">
+          {hasEntries(education, ['degree', 'institution']) ? (
+            <section>
+              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b pb-2">Education</h2>
+              <div className="mt-3 space-y-3">
+                {education.map((item, idx) => (
+                  <div key={`edu-${idx}`} className="pb-2 border-b last:border-0">
+                    <div className="text-[11px] font-semibold">{item?.degree || 'Degree'}</div>
+                    <div className="text-[10px] text-slate-600">{item?.institution || 'University'}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </main>
+      </div>
     </div>
   )
 }
@@ -488,7 +456,65 @@ function TemplateThumbnail({ templateId }) {
 }
 
 export default function LivePreview({ templateId, data, onSwitchTemplate }) {
+  const [previewHtml, setPreviewHtml] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Fetch the server-rendered template HTML for a true preview (debounced).
+  useEffect(() => {
+    let mounted = true
+    let timer = null
+
+    async function fetchPreview() {
+      setLoading(true)
+      setError(null)
+      try {
+        const resp = await fetch('/api/render-resume-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ template_id: templateId, data }),
+        })
+        if (!mounted) return
+        if (!resp.ok) {
+          const txt = await resp.text()
+          throw new Error(`${resp.status} ${resp.statusText} - ${txt}`)
+        }
+        const html = await resp.text()
+        setPreviewHtml(html)
+      } catch (err) {
+        setError(String(err))
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    // Debounce rapid updates (typing) to avoid repeated full re-renders
+    if (templateId) {
+      timer = setTimeout(() => fetchPreview(), 350)
+    }
+
+    return () => {
+      mounted = false
+      if (timer) clearTimeout(timer)
+    }
+  }, [templateId, data])
+
   const preview = useMemo(() => {
+    // Prefer server HTML when available; otherwise fallback to client-side render
+    if (previewHtml && !error) {
+      return (
+        <div className="w-full bg-white text-slate-900 flex justify-center" style={{ minHeight: '297mm' }}>
+          <iframe
+            title="resume-preview"
+            srcDoc={previewHtml}
+            style={{ width: '210mm', height: '297mm', border: '0', display: 'block' }}
+            sandbox="allow-same-origin allow-scripts"
+          />
+        </div>
+      )
+    }
+
+    // Client-side fallback previews (fast, no network)
     switch (templateId) {
       case 'template1':
         return <Template1Preview data={data} />
@@ -501,7 +527,7 @@ export default function LivePreview({ templateId, data, onSwitchTemplate }) {
       default:
         return <Template1Preview data={data} />
     }
-  }, [data, templateId])
+  }, [data, templateId, previewHtml, error])
 
   const otherTemplates = TEMPLATE_ORDER.filter((id) => id !== templateId)
 

@@ -1,85 +1,76 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ name }} - Resume</title>
-    <link rel="stylesheet" href="style.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="resume-container">
-        <header class="top-grid">
-            <div class="brand-box">
-                <div class="glow-effect"></div>
+    <div class="page">
+        <!-- Left Sidebar -->
+        <aside class="left-sidebar">
+            <div class="name-box">
                 <h1 class="name">{{ name }}</h1>
-                <p class="objective-tag">{{ objective | upper }}</p>
-            </div>
-            <div class="contact-box">
-                <div class="contact-item">{{ email }}</div>
-                <div class="contact-item">{{ phone }}</div>
-                <div class="contact-item">{{ address }}</div>
-            </div>
-        </header>
-
-        <div class="main-grid">
-            <div class="col-left">
-                <section class="section">
-                    <div class="section-header">
-                        <h2>Experience</h2>
-                        <span class="sparkle">✦</span>
-                    </div>
-                    {% for exp in experience %}
-                    <div class="entry">
-                        <p class="entry-date"><strong>{{ exp.date_range | upper }}</strong></p>
-                        <h3 class="entry-title">{{ exp.title | upper }}</h3>
-                        <p class="entry-sub">{{ exp.company }}, {{ exp.location }}</p>
-                        <ul class="bullet-list">
-                            {% for bullet in exp.bullets %}
-                            <li>{{ bullet }}</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                    {% endfor %}
-                </section>
-
-                <section class="section">
-                    <div class="section-header">
-                        <h2>Education</h2>
-                        <span class="sparkle">✦</span>
-                    </div>
-                    {% for edu in education %}
-                    <div class="entry education">
-                        <p class="entry-date"><strong>{{ edu.dates }}</strong></p>
-                        <h3 class="entry-title">{{ edu.degree | upper }}</h3>
-                        <p class="entry-sub">{{ edu.institution }}, {{ edu.location }}</p>
-                    </div>
-                    {% endfor %}
-                </section>
+                <p class="job-title">{{ objective }}</p>
             </div>
 
-            <div class="col-right">
-                <section class="section">
-                    <div class="section-header">
-                        <h2>Summary</h2>
-                        <span class="sparkle">✦</span>
-                    </div>
-                    <p class="summary-text">{{ summary }}</p>
-                </section>
-
-                <section class="section">
-                    <div class="section-header">
-                        <h2>Skills</h2>
-                        <span class="sparkle">✦</span>
-                    </div>
-                    <ul class="skills-list">
-                        {% for skill in skills %}
-                        <li>{{ skill.name }}</li>
+            {% if experience %}
+            <section class="sidebar-section">
+                <h2 class="sidebar-title">Experience</h2>
+                {% for exp in experience %}
+                <div class="exp-item">
+                    <p class="exp-date">{{ exp.startYear }}{% if exp.endYear %} - {{ exp.endYear }}{% else %} - Current{% endif %}</p>
+                    <h3 class="exp-title">{{ exp.title }}</h3>
+                    <p class="exp-company">{{ exp.company }}, {{ exp.company }}</p>
+                    {% if exp.description %}
+                    <ul class="exp-bullets">
+                        {% for line in exp.description.split('\n') %}
+                        {% if line.strip() %}
+                        <li>{{ line.strip() }}</li>
+                        {% endif %}
                         {% endfor %}
                     </ul>
-                </section>
-            </div>
-        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if objective %}
+            <section class="sidebar-section">
+                <h2 class="sidebar-title">Summary</h2>
+                <p class="summary-text">{{ objective }}</p>
+            </section>
+            {% endif %}
+
+            {% if skills %}
+            <section class="sidebar-section">
+                <h2 class="sidebar-title">Skills</h2>
+                <ul class="skills-list">
+                    {% for skill in skills %}
+                    <li>{{ skill.name }}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+            {% endif %}
+        </aside>
+
+        <!-- Right Content -->
+        <main class="right-content">
+            {% if education %}
+            <section class="main-section">
+                <h2 class="main-title">Education</h2>
+                {% for edu in education %}
+                <div class="edu-item">
+                    <p class="edu-date">{{ edu.startYear }}{% if edu.endYear %} - {{ edu.endYear }}{% endif %}</p>
+                    <h3 class="edu-degree">{{ edu.degree }}</h3>
+                    <p class="edu-institution">{{ edu.institution }}</p>
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+        </main>
     </div>
 </body>
 </html>

@@ -5,10 +5,18 @@
 ### Prerequisites
 - Python 3.11+
 - pip or conda
+- **wkhtmltopdf** (for PDF generation)
+  - **Windows:** Download from https://wkhtmltopdf.org/downloads.html and install (recommended: wkhtmltox-0.12.6-1.exe)
+  - **Mac:** `brew install wkhtmltopdf`
+  - **Linux:** `sudo apt-get install wkhtmltopdf`
 
 ### Setup
 
-1. **Create Virtual Environment:**
+1. **Install wkhtmltopdf (IMPORTANT):**
+   - Windows users: Download and run the installer from https://wkhtmltopdf.org/downloads.html
+   - After installation, verify it works: `wkhtmltopdf --version`
+
+2. **Create Virtual Environment:**
 ```bash
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate

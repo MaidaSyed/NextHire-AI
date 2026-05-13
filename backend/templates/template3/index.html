@@ -1,74 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ name }} - Resume</title>
-    <link rel="stylesheet" href="style.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="resume-container">
+    <div class="page">
+        <!-- Header -->
         <header class="header">
-            <h1 class="name">{{ name | upper }}</h1>
+            <h1 class="name">{{ name }}</h1>
             <p class="job-title">{{ objective }}</p>
-            <p class="contact-line">{{ address }}</p>
-            <p class="contact-line"><strong>{{ email }} &nbsp;&nbsp; {{ phone }}</strong></p>
+            <div class="contact-info">
+                {% if linkedin %}
+                <a href="{{ linkedin }}" class="contact-link">{{ linkedin }}</a>
+                {% endif %}
+                {% if phone %}
+                <span class="contact-divider">|</span>
+                <span class="contact-detail">{{ phone }}</span>
+                {% endif %}
+            </div>
+            <hr class="header-line">
         </header>
 
-        <hr class="header-divider">
+        <!-- Main Content -->
+        <div class="content">
+            {% if objective %}
+            <section class="section">
+                <h2 class="section-title">SUMMARY</h2>
+                <p class="section-text">{{ objective }}</p>
+            </section>
+            {% endif %}
 
-        <section class="section">
-            <h2 class="section-title">SUMMARY</h2>
-            <p class="summary-text">{{ summary }}</p>
-        </section>
-
-        <section class="section">
-            <h2 class="section-title">EXPERIENCE</h2>
-            {% for exp in experience %}
-            <div class="entry">
-                <div class="entry-header">
-                    <span class="icon">❖</span>
-                    <span class="entry-main-text"><strong>{{ exp.title }}, {{ exp.company }}</strong></span>
-                    <span class="dots"></span>
-                    <span class="entry-date">{{ exp.date_range }}</span>
-                </div>
-                <div class="location-line">{{ exp.location }}</div>
-                <ul class="bullet-list">
-                    {% for bullet in exp.bullets %}
-                    <li>{{ bullet }}</li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endfor %}
-        </section>
-
-        <section class="section">
-            <h2 class="section-title">EDUCATION</h2>
-            {% for edu in education %}
-            <div class="entry education-entry">
-                <div class="entry-header">
-                    <span class="icon">❖</span>
-                    <span class="entry-main-text"><strong>{{ edu.institution }}</strong></span>
-                    <span class="dots"></span>
-                    <span class="entry-date">{{ edu.dates }}</span>
-                </div>
-                <div class="degree-line"><em>{{ edu.degree }}</em> <span class="loc-right">{{ edu.location }}</span></div>
-            </div>
-            {% endfor %}
-        </section>
-
-        <section class="section">
-            <h2 class="section-title">SKILLS</h2>
-            <div class="skills-grid">
-                {% for skill in skills %}
-                <div class="skill-item">
-                    <span class="skill-name">{{ skill.name }}</span>
-                    <span class="dots"></span>
+            {% if experience %}
+            <section class="section">
+                <h2 class="section-title">EXPERIENCE</h2>
+                {% for exp in experience %}
+                <div class="entry">
+                    <div class="entry-header">
+                        <span class="entry-title">{{ exp.title }}</span>
+                        <span class="entry-date">{{ exp.startYear }}{% if exp.endYear %} – {{ exp.endYear }}{% else %} – Current{% endif %}</span>
+                    </div>
+                    <p class="entry-company">{{ exp.company }}</p>
+                    {% if exp.description %}
+                    <ul class="entry-bullets">
+                        {% for line in exp.description.split('\n') %}
+                        {% if line.strip() %}
+                        <li>{{ line.strip() }}</li>
+                        {% endif %}
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
                 </div>
                 {% endfor %}
-            </div>
-        </section>
+            </section>
+            {% endif %}
+
+            {% if education %}
+            <section class="section">
+                <h2 class="section-title">EDUCATION</h2>
+                {% for edu in education %}
+                <div class="entry">
+                    <div class="entry-header">
+                        <span class="entry-title">{{ edu.degree }}</span>
+                        <span class="entry-date">{{ edu.startYear }}{% if edu.endYear %} – {{ edu.endYear }}{% endif %}</span>
+                    </div>
+                    <p class="entry-company">{{ edu.institution }}</p>
+                </div>
+                {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if skills %}
+            <section class="section">
+                <h2 class="section-title">SKILLS</h2>
+                <div class="skills-grid">
+                    {% for skill in skills %}
+                    <div class="skill-col">
+                        <span class="skill-name">{{ skill.name }}</span>
+                        <span class="skill-dots">.....................................</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+        </div>
     </div>
 </body>
 </html>
