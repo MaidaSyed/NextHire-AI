@@ -1,3 +1,4 @@
+import difflib
 import io
 import json
 import logging
@@ -735,11 +736,62 @@ def _build_history_prompt(history: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _fallback_question(settings: dict, trend: str) -> dict:
+def _normalize_question_signature(text: str) -> str:
+    cleaned = str(text or "").strip().lower()
+    cleaned = re.sub(rf"[{re.escape(string.punctuation)}]", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned
+
+
+def _collect_previous_questions(payload: dict, history: list[dict]) -> list[str]:
+    candidates: list[str] = []
+    for key in ("askedQuestions", "asked_questions", "previous_questions", "question_history"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            candidates.extend(str(item).strip() for item in value if str(item).strip())
+        elif isinstance(value, str) and value.strip():
+            candidates.append(value.strip())
+
+    for item in history:
+        question = str(item.get("question") or item.get("current_question") or "").strip()
+        if question:
+            candidates.append(question)
+
+    seen = set()
+    unique_questions: list[str] = []
+    for question in candidates:
+        signature = _normalize_question_signature(question)
+        if not signature or signature in seen:
+            continue
+        seen.add(signature)
+        unique_questions.append(question)
+    return unique_questions
+
+
+def _is_duplicate_question(candidate: str, previous_questions: list[str]) -> bool:
+    candidate_signature = _normalize_question_signature(candidate)
+    if not candidate_signature:
+        return True
+
+    for previous in previous_questions:
+        previous_signature = _normalize_question_signature(previous)
+        if not previous_signature:
+            continue
+        if previous_signature == candidate_signature:
+            return True
+        if len(candidate_signature) > 20 and len(previous_signature) > 20:
+            if difflib.SequenceMatcher(None, candidate_signature, previous_signature).ratio() >= 0.88:
+                return True
+    return False
+
+
+def _fallback_question(settings: dict, trend: str, previous_questions: list[str] | None = None) -> dict:
     role = settings["role"]
     experience = settings["experience_level"]
     interview_type = settings["interview_type"]
     question_number = settings.get("question_number", 1)
+    previous_questions = previous_questions or []
+    previous_signatures = {_normalize_question_signature(q) for q in previous_questions}
 
     # Vary the fallback questions to avoid repetition
     fallback_options = {
@@ -747,25 +799,33 @@ def _fallback_question(settings: dict, trend: str) -> dict:
             f"Can you explain what {role}s typically need to understand about {interview_type.lower()} scenarios?",
             f"Walk me through a day-to-day task you'd handle in a {role} role.",
             f"What's a fundamental concept every {role} should master?",
+            f"How would you describe the main responsibility of a {role} to someone new to the field?",
         ],
         "harder": [
             f"Describe a complex technical challenge you'd face as a {role} and how you'd approach it.",
             f"Tell me about a difficult trade-off decision between quality, speed, and cost in a {role} context.",
             f"How would you design a solution that scales for a large {role} challenge?",
+            f"What edge cases or failure modes would you plan for when solving a {role}-level problem?",
         ],
         "maintain": [
             f"What's a recent project or task where you applied {interview_type.lower()} thinking as a {role}?",
             f"How do you balance technical depth with practical solutions in a {role} role?",
             f"Tell me about a time when your {role} skills made a measurable difference.",
             f"What tools or methodologies do you find most effective for {role} work?",
+            f"How would you handle a situation where your first approach for a {role} task did not work?",
         ],
     }
 
     # Select a question based on trend and question number for variety
     options = fallback_options.get(trend, fallback_options["maintain"])
-    # Use question number to cycle through options for variety
-    question_index = (question_number - 1) % len(options)
-    question = options[question_index]
+    question = None
+    for option in options:
+        if _normalize_question_signature(option) not in previous_signatures:
+            question = option
+            break
+    if not question:
+        question_index = (question_number - 1) % len(options)
+        question = options[question_index]
 
     if trend == "easier":
         difficulty = "Beginner"
@@ -1005,18 +1065,10 @@ def _generate_interview_question_from_gemini(payload: dict) -> dict:
         or payload.get("previous_interview_history")
         or payload.get("history")
     )
-    parsed_resume = (payload.get("parsed_resume_text") or payload.get("resume_text") or "")
     guidance, trend = _history_summary(history)
     history_prompt = _build_history_prompt(history)
-    resume_preview = _truncate_text(parsed_resume, 2000)
-    
-    # Extract previous questions and covered concepts to avoid repeats
-    previous_questions = payload.get("previous_questions") or []
-    if isinstance(previous_questions, list):
-        previous_questions = [str(q).strip() for q in previous_questions if q]
+    previous_questions = _collect_previous_questions(payload, history)
     previous_questions_text = "\n".join([f"- {q}" for q in previous_questions]) if previous_questions else "(No previous questions yet)"
-    
-    # Get covered concepts
     covered_concepts = payload.get("covered_concepts") or []
     if isinstance(covered_concepts, list):
         covered_concepts = [str(c).strip() for c in covered_concepts if str(c).strip()]
@@ -1034,10 +1086,8 @@ def _generate_interview_question_from_gemini(payload: dict) -> dict:
         f"Question number: {settings['question_number']} of {settings['question_count']}\n"
         f"Adaptive guidance: {guidance}\n"
         f"Suggested trend: {trend}\n\n"
-        
-        f"Parsed resume context (if provided):\n{resume_preview}\n\n"
-        
         f"Interview history (most recent last):\n{history_prompt}\n\n"
+        f"Previous Q&A history is mandatory context for this request.\n\n"
         
         f"PREVIOUS QUESTIONS ASKED (DO NOT REPEAT OR USE SIMILAR PHRASING):\n{previous_questions_text}\n\n"
         
@@ -1072,6 +1122,8 @@ def _generate_interview_question_from_gemini(payload: dict) -> dict:
         question = _truncate_text(parsed.get("question") or "", 1000)
         if not question:
             raise ValueError("Missing question text.")
+        if _is_duplicate_question(question, previous_questions):
+            raise ValueError("Gemini generated a repeated question.")
         logger.info(f"Interview question generated successfully: question_number={settings['question_number']}")
         return {
             "question": question,
@@ -1086,7 +1138,7 @@ def _generate_interview_question_from_gemini(payload: dict) -> dict:
         logger.warning(f"Interview question Gemini failed (using fallback): {exc}")
         logger.debug(f"Covered concepts: {covered_concepts}")
         logger.debug(f"Previous questions count: {len(previous_questions)}")
-        return _fallback_question(settings, trend)
+        return _fallback_question(settings, trend, previous_questions)
 
 
 def _evaluate_interview_answer_with_gemini(payload: dict) -> dict:
@@ -1099,13 +1151,7 @@ def _evaluate_interview_answer_with_gemini(payload: dict) -> dict:
     question = _truncate_text(payload.get("current_question") or payload.get("question") or "", 1000)
     answer = _truncate_text(payload.get("user_answer") or payload.get("answer") or "", 2000)
     history_prompt = _build_history_prompt(history)
-    parsed_resume = (payload.get("parsed_resume_text") or payload.get("resume_text") or "")
-    resume_preview = _truncate_text(parsed_resume, 2000)
-    
-    # Extract previous questions and covered concepts for context
-    previous_questions = payload.get("previous_questions") or []
-    if isinstance(previous_questions, list):
-        previous_questions = [str(q).strip() for q in previous_questions if q]
+    previous_questions = _collect_previous_questions(payload, history)
     previous_questions_text = "\n".join([f"- {q}" for q in previous_questions]) if previous_questions else "(No previous questions yet)"
     
     covered_concepts = payload.get("covered_concepts") or []
@@ -1132,9 +1178,8 @@ def _evaluate_interview_answer_with_gemini(payload: dict) -> dict:
         
         f"QUESTION ASKED:\n{question}\n\n"
         f"CANDIDATE'S ANSWER:\n{answer}\n\n"
-        
-        f"Resume context (if provided):\n{resume_preview}\n\n"
         f"Interview history:\n{history_prompt}\n\n"
+        f"Previous Q&A history is mandatory context for this request.\n\n"
         
         f"Previously covered concepts: {covered_concepts_text}\n\n"
         
@@ -1249,6 +1294,26 @@ def _evaluate_interview_answer_with_gemini(payload: dict) -> dict:
         fallback = _fallback_evaluation(answer, settings, question)
         fallback["question"] = question
         return fallback
+
+
+@app.route("/api/render-resume-preview", methods=["POST"])
+def render_resume_preview():
+    try:
+        payload = request.get_json(silent=True) or {}
+        template_id = (payload.get("template_id") or payload.get("template") or "").strip()
+        data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
+
+        if not template_id:
+            return _error("Missing template_id.", 400)
+        if not _template_exists(template_id):
+            return _error(f"Template not found: {template_id}", 404)
+
+        resume_data = _safe_resume_payload(data if isinstance(data, dict) else {})
+        html = _render_resume_html(template_id, resume_data)
+        return app.response_class(html, mimetype="text/html; charset=utf-8")
+    except Exception as exc:
+        logger.error(f"Resume preview error: {str(exc)}")
+        return _error(str(exc), 500)
 
 
 @app.route("/api/upload-resume", methods=["POST"])

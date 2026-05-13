@@ -384,11 +384,6 @@ function InterviewPrep() {
   })
   const [started, setStarted] = useState(false)
   const [completed, setCompleted] = useState(false)
-  const [resumeFileName, setResumeFileName] = useState('')
-  const [resumeParsedText, setResumeParsedText] = useState('')
-  const [uploadLoading, setUploadLoading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
-  const [dragActive, setDragActive] = useState(false)
   // Voice states
   const [voiceEnabled, setVoiceEnabled] = useState(true)
   const [interviewMode, setInterviewMode] = useState('TEXT')
@@ -429,60 +424,6 @@ function InterviewPrep() {
     }
   }, [turns, currentQuestion, pendingFeedback, completed, loadingQuestion, evaluating])
 
-  // --- Resume upload handlers ---
-  async function uploadFileToServer(file) {
-    setUploadError('')
-    setUploadLoading(true)
-    try {
-      const form = new FormData()
-      form.append('resume', file)
-      const resp = await fetch(apiUrl('/upload-resume'), {
-        method: 'POST',
-        body: form,
-      })
-      const data = await resp.json().catch(() => ({}))
-      if (!resp.ok) {
-        throw new Error(data.error || 'Upload failed')
-      }
-      setResumeFileName(data.filename || file.name)
-      setResumeParsedText(data.parsed_text || '')
-    } catch (err) {
-      setUploadError(err.message || 'Upload failed')
-      setResumeFileName('')
-      setResumeParsedText('')
-    } finally {
-      setUploadLoading(false)
-      setDragActive(false)
-    }
-  }
-
-  function handleFileInputChange(e) {
-    const f = e.target.files && e.target.files[0]
-    if (f) {
-      uploadFileToServer(f)
-    }
-  }
-
-  function handleDragOver(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(true)
-  }
-
-  function handleDragLeave(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-  }
-
-  function handleDrop(e) {
-    e.preventDefault()
-    e.stopPropagation()
-    setDragActive(false)
-    const f = e.dataTransfer?.files && e.dataTransfer.files[0]
-    if (f) uploadFileToServer(f)
-  }
-
   // --- Voice: load voices, speak AI questions, and handle speech recognition ---
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
@@ -495,7 +436,7 @@ function InterviewPrep() {
           const prefer = v.find((x) => /en-?us|english/i.test(x.lang || x.name))
           setSelectedVoice(prefer ? prefer.name : v[0].name)
         }
-      } catch (err) {
+      } catch {
         // ignore
       }
     }
@@ -504,9 +445,11 @@ function InterviewPrep() {
     return () => {
       try {
         window.speechSynthesis.onvoiceschanged = null
-      } catch (e) {}
+      } catch {
+        // ignore
+      }
     }
-  }, [])
+  }, [selectedVoice])
 
   useEffect(() => {
     if (!voiceEnabled || !currentQuestion) return
@@ -516,7 +459,9 @@ function InterviewPrep() {
     try {
       const chosen = (voices || []).find((v) => v.name === selectedVoice)
       if (chosen) utter.voice = chosen
-    } catch (e) {}
+    } catch {
+      // ignore
+    }
     utter.rate = 1
     utter.pitch = 1
     utter.onstart = () => setAiSpeaking(true)
@@ -526,10 +471,11 @@ function InterviewPrep() {
     return () => {
       try {
         window.speechSynthesis.cancel()
-      } catch (e) {}
+      } catch {
+        // ignore
+      }
       setAiSpeaking(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestion, selectedVoice, voiceEnabled, voices])
 
   function startRecognition() {
@@ -549,12 +495,10 @@ function InterviewPrep() {
       rec.continuous = true
       rec.maxAlternatives = 1
       let silenceTimer = null
-      let lastTranscriptTime = Date.now()
       
       rec.onstart = () => {
         setRecognitionActive(true)
         setLiveTranscript('')
-        lastTranscriptTime = Date.now()
       }
       
       rec.onresult = (ev) => {
@@ -567,7 +511,6 @@ function InterviewPrep() {
         }
         const current = (final || interim).trim()
         if (current) {
-          lastTranscriptTime = Date.now()
           clearTimeout(silenceTimer)
         }
         setLiveTranscript(current)
@@ -610,7 +553,9 @@ function InterviewPrep() {
   function stopRecognition() {
     try {
       if (recognitionRef.current) recognitionRef.current.stop()
-    } catch (e) {}
+    } catch {
+      // ignore
+    }
     setRecognitionActive(false)
     recognitionRef.current = null
   }
@@ -657,7 +602,8 @@ function InterviewPrep() {
         question_number: 1,
         interview_history: [],
         previous_questions: [],
-        parsed_resume_text: resumeParsedText || undefined,
+        askedQuestions: [],
+        asked_questions: [],
       })
 
       setCurrentQuestion(safeText(data.question))
@@ -692,9 +638,10 @@ function InterviewPrep() {
         user_answer: answer.trim(),
         interview_history: historyPayload,
         previous_questions: questionHistory,
+        askedQuestions: questionHistory,
+        asked_questions: questionHistory,
         question_number: questionIndex,
         question_count: settings.questionCount,
-        parsed_resume_text: resumeParsedText || undefined,
       })
 
       const feedback = normalizeFeedback(data)
@@ -739,7 +686,6 @@ function InterviewPrep() {
           interview_type: settings.interviewType,
           question_count: settings.questionCount,
           interview_history: historyPayload,
-          parsed_resume_text: resumeParsedText || undefined,
         })
 
         setSummary(data)
@@ -765,8 +711,9 @@ function InterviewPrep() {
         question_number: nextQuestionNumber,
         interview_history: historyPayload,
         previous_questions: questionHistory,
+        askedQuestions: questionHistory,
+        asked_questions: questionHistory,
         covered_concepts: coveredConcepts,
-        parsed_resume_text: resumeParsedText || undefined,
       })
 
       setQuestionIndex(nextQuestionNumber)
@@ -985,36 +932,6 @@ function InterviewPrep() {
                     </option>
                   ))}
                 </select>
-              </div>
-            </FieldShell>
-
-            <FieldShell label="Upload Resume (Optional)" hint="PDF or DOCX only">
-              <div
-                id="txt1"
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`relative flex items-center justify-center w-full rounded-2xl border-2 px-4 py-6 text-sm transition ${
-                  dragActive ? 'border-neon-500/60 bg-emerald-950/30' : 'border-neon-500/15 bg-emerald-950/18'
-                }`}
-              >
-                <input
-                  aria-hidden
-                  accept=".pdf,.docx"
-                  type="file"
-                  onChange={handleFileInputChange}
-                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                />
-                <div className="pointer-events-none flex w-full flex-col items-center justify-center gap-2">
-                  <div className="text-sm text-emerald-100/70">Drag & drop your resume, or click to browse</div>
-                  <div className="text-xs text-emerald-100/45">Accepted: PDF, DOCX · Optional</div>
-                  {uploadLoading ? (
-                    <div className="mt-2 text-xs text-emerald-100/60">Uploading...</div>
-                  ) : resumeFileName ? (
-                    <div className="mt-2 text-xs text-emerald-50">Uploaded: {resumeFileName}</div>
-                  ) : null}
-                  {uploadError ? <div className="mt-2 text-xs text-amber-300">{uploadError}</div> : null}
-                </div>
               </div>
             </FieldShell>
           </div>
