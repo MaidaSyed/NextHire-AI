@@ -162,7 +162,7 @@ _PHRASE_SKILLS = {
     "data analysis",
     "machine learning",
     "deep learning",
-    "natural language",
+    "natural language processing",
     "nlp",
     "computer vision",
     "rest api",
@@ -171,6 +171,13 @@ _PHRASE_SKILLS = {
     "cloud computing",
     "microservices",
     "project management",
+    "agile methodology",
+    "scrum master",
+    "full stack",
+    "frontend developer",
+    "backend developer",
+    "data science",
+    "artificial intelligence",
 }
 
 _COMMON_SKILLS = {
@@ -179,6 +186,9 @@ _COMMON_SKILLS = {
     "javascript",
     "typescript",
     "react",
+    "nextjs",
+    "vue",
+    "angular",
     "node",
     "flask",
     "django",
@@ -197,12 +207,18 @@ _COMMON_SKILLS = {
     "linux",
     "html",
     "css",
+    "tailwind",
+    "bootstrap",
+    "graphql",
     "rest api",
     "microservices",
     "unit testing",
     "ci",
     "cd",
     "devops",
+    "jenkins",
+    "terraform",
+    "ansible",
 }
 
 
@@ -312,9 +328,29 @@ def _extract_keywords(tokens: list[str]) -> set[str]:
 def _cosine_similarity_fallback(a_keywords: set[str], b_keywords: set[str]) -> float:
     if not a_keywords or not b_keywords:
         return 0.0
+    
+    # Standard intersection
     intersection = len(a_keywords & b_keywords)
+    
+    # Add fuzzy matching for similar words (e.g., "developer" vs "development")
+    fuzzy_matches = 0
+    a_list = list(a_keywords)
+    b_list = list(b_keywords)
+    
+    # Only do fuzzy matching for keywords that aren't already in intersection
+    remaining_a = [w for w in a_list if w not in b_keywords]
+    remaining_b = [w for w in b_list if w not in a_keywords]
+    
+    for wa in remaining_a:
+        for wb in remaining_b:
+            # Simple prefix matching or very close similarity
+            if wa.startswith(wb) or wb.startswith(wa) or difflib.SequenceMatcher(None, wa, wb).ratio() > 0.8:
+                fuzzy_matches += 0.5
+                break # Count each word at most once
+                
+    total_match = intersection + fuzzy_matches
     denom = (len(a_keywords) * len(b_keywords)) ** 0.5
-    return intersection / denom if denom else 0.0
+    return min(1.0, total_match / denom) if denom else 0.0
 
 
 def _semantic_similarity_score(resume_text: str, jd_text: str) -> float:
@@ -340,6 +376,43 @@ def _semantic_similarity_score(resume_text: str, jd_text: str) -> float:
     resume_keywords = _extract_keywords(_tokenize(resume_text, stopwords_set))
     jd_keywords = _extract_keywords(_tokenize(jd_text, stopwords_set))
     return max(0.0, min(1.0, _cosine_similarity_fallback(resume_keywords, jd_keywords))) * 100
+
+
+def _analyze_formatting(text: str) -> list[str]:
+    issues = []
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    
+    if not lines:
+        return ["Empty document detected."]
+        
+    # Check for long paragraphs (poor ATS readability)
+    long_paragraphs = 0
+    for line in lines:
+        if len(line.split()) > 60:
+            long_paragraphs += 1
+    
+    if long_paragraphs > 1:
+        issues.append("Detected large text blocks - break them into shorter bullets for better ATS parsing.")
+        
+    # Check for bullet points (ATS likes them)
+    bullet_points = [l for l in lines if l.startswith(('-', '•', '*', '+', '·'))]
+    if len(bullet_points) < 5:
+        issues.append("Low use of bullet points - use them for better scanability of your achievements.")
+        
+    # Check for common sections
+    text_lower = text.lower()
+    missing_sections = []
+    if "experience" not in text_lower and "work" not in text_lower and "employment" not in text_lower:
+        missing_sections.append("Experience")
+    if "education" not in text_lower:
+        missing_sections.append("Education")
+    if "skill" not in text_lower:
+        missing_sections.append("Skills")
+        
+    if missing_sections:
+        issues.append(f"Standard sections missing or poorly labeled: {', '.join(missing_sections)}.")
+        
+    return issues
 
 
 def calculate_advanced_ats(resume_text: str, jd_text: str, resume_source: str, jd_source: str) -> dict:
@@ -385,17 +458,32 @@ def calculate_advanced_ats(resume_text: str, jd_text: str, resume_source: str, j
     else:
         skill_score = keyword_score
 
+    # Analyze formatting early to use in scoring
+    formatting_issues = _analyze_formatting(resume_text)
+
     # Enhanced scoring: Weighted formula
-    # 30% for core skill matching, 40% semantic relevance, 30% keyword/experience matching
-    ats_score = (0.3 * skill_score) + (0.4 * semantic_score) + (0.3 * keyword_score)
+    # 40% for core skill matching, 30% semantic relevance, 30% keyword/experience matching
+    # Add a small base score if there is any relevance at all
+    base_score = 15.0 if (skill_score > 0 or semantic_score > 20 or keyword_score > 0) else 0.0
     
+    raw_ats_score = (0.4 * skill_score) + (0.3 * semantic_score) + (0.3 * keyword_score)
+    ats_score = base_score + (raw_ats_score * 0.85) # Scale down to fit base score
+    
+    # Penalize for formatting issues (max -10 points)
+    if formatting_issues:
+        penalty = min(10, len(formatting_issues) * 2.5)
+        ats_score = max(0, ats_score - penalty)
+
     # Boost score if resume has good semantic match (indicates strong contextual fit)
-    if semantic_score > 70 and skill_score > 60:
-        ats_score = min(100, ats_score + 5)
+    if semantic_score > 60 and skill_score > 50:
+        ats_score = min(98, ats_score + 7)
     
     # Ensure the score reflects reality - if semantic and skills are both high, final score should be high
-    if semantic_score > 75 and skill_score > 70:
-        ats_score = max(ats_score, 78)
+    if semantic_score > 70 and skill_score > 60:
+        ats_score = max(ats_score, 75)
+    
+    # Cap at 100
+    ats_score = min(100, ats_score)
 
     suggestions: list[str] = []
     
@@ -434,6 +522,7 @@ def calculate_advanced_ats(resume_text: str, jd_text: str, resume_source: str, j
         "matched_keywords": matched_keywords,
         "missing_keywords": missing_keywords,
         "important_skills_detected": important_skills_detected,
+        "formatting_issues": formatting_issues,
         "resume_source": resume_source,
         "jd_source": jd_source,
         "suggestions": deduped_suggestions,
@@ -462,6 +551,44 @@ def _template_exists(template_id: str) -> bool:
     return (t_root / "index.html").is_file() and (t_root / "style.css").is_file()
 
 
+# Prepended to every resume stylesheet for WeasyPrint / wkhtmltopdf: A4 page box,
+# no extra body padding (otherwise 210mm + padding exceeds the sheet and clips),
+# flex children must be allowed to shrink, long URLs must wrap.
+_RESUME_RENDER_BASE_CSS = """
+@page { size: A4; margin: 0; }
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  height: auto !important;
+  max-width: 100%;
+}
+.page {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+.sidebar, .main-content, .left-column, .right-column, .left-sidebar, .right-content,
+.container, .content, .header {
+  min-width: 0;
+}
+.entry-header, .experience-header, .education-header {
+  min-width: 0;
+}
+.entry-title, .job-title-main, .degree-name, .exp-title, .edu-degree,
+.summary-text, .section-text, .contact-info, .contact-link, .detail-item,
+.lead-summary, .job-title {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+.entry-title, .job-title-main, .degree-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.entry-date, .date-range {
+  flex-shrink: 0;
+}
+""".strip()
+
+
 def _render_resume_html(template_id: str, data: dict) -> str:
     template = _jinja_env().get_template(f"{template_id}/index.html")
     rendered = template.render(**data)
@@ -472,7 +599,7 @@ def _render_resume_html(template_id: str, data: dict) -> str:
         flags=re.IGNORECASE,
     )
     css_path = _backend_templates_root() / template_id / "style.css"
-    css = css_path.read_text(encoding="utf-8")
+    css = _RESUME_RENDER_BASE_CSS + "\n" + css_path.read_text(encoding="utf-8")
     style_tag = f"<style>\n{css}\n</style>\n"
     if "</head>" in rendered:
         return rendered.replace("</head>", style_tag + "</head>", 1)
@@ -513,7 +640,7 @@ def _html_to_pdf_bytes(html: str) -> bytes:
 def _gemini_generate_text(prompt: str) -> str:
     # Try Gemini / Google Generative Language first
     api_key = get_setting("NEXTHIRE_AI_API_KEY") or get_setting("GOOGLE_API_KEY")
-    model = get_setting("NEXTHIRE_AI_MODEL", "gemini-2.0-flash")
+    model = get_setting("NEXTHIRE_AI_MODEL", "gemini-1.5-flash")
 
     def _call_gemini():
         if not api_key:
@@ -1564,101 +1691,125 @@ def ats_score():
             logger.warning("ATS score request missing job description")
             return _error("No job description provided. Send jd_text / job_description or jd_pdf.")
 
-        # Compute a local baseline result
-        local_result = calculate_advanced_ats(resume_text, jd_text, resume_source, jd_source)
-
-        # Attempt to call Gemini to get a JSON-formatted ATS scoring breakdown.
-        # If the AI call fails or returns invalid JSON, fall back to local result.
+        # PRIMARY: Use Gemini AI for ATS scoring (most accurate)
+        # Fallback to local calculation only if Gemini fails
         try:
             prompt = (
-                "You are an expert ATS (Applicant Tracking System) analyst evaluating resume-to-job-description fit. "
-                "Analyze the resume against the job description comprehensively and return ONLY a valid JSON object with:\n\n"
-                "{\n"
-                "  \"score\": <integer 0-100, comprehensive match percentage>,\n"
-                "  \"keyword_match_percentage\": <float 0-100>,\n"
-                "  \"semantic_similarity_percentage\": <float 0-100>,\n"
-                "  \"matched_keywords\": [<list of skills/keywords from JD found in resume>],\n"
-                "  \"missing_keywords\": [<list of important skills from JD NOT in resume>],\n"
-                "  \"core_requirements_met\": <true/false - does resume have CORE required skills>,\n"
-                "  \"plus_skills_match\": [<skills mentioned as 'plus' or 'nice-to-have' that are in resume>],\n"
-                "  \"education_assessment\": <brief text on education fit>,\n"
-                "  \"experience_level_fit\": <brief text on experience level match>,\n"
-                "  \"formatting_issues\": [<list of formatting concerns if any>],\n"
-                "  \"improvement_suggestions\": [<top 3 suggestions to improve match>]\n"
-                "}\n\n"
-                f"JOB_TITLE: {job_title}\n"
+                "You are an expert ATS (Applicant Tracking System) analyst. Analyze this resume against the job description "
+                "using these proven methodologies:\n\n"
+                
+                "ANALYSIS FRAMEWORK:\n"
+                "1. KEYWORD FREQUENCY & CONTEXTUAL MAPPING:\n"
+                "   - Direct Skills Match: Exact matches for core requirements (HTML, CSS, JavaScript, etc.)\n"
+                "   - Desired Skills Match: Plus/nice-to-have keywords (React, frameworks, etc.)\n"
+                "   - Verb Alignment: Check for action verbs from JD (developing, maintaining, collaborating, etc.)\n"
+                "   - Project Relevance: Does technical stack show exceeding competency for the role?\n\n"
+                
+                "2. ROLE ELIGIBILITY & HIERARCHY VERIFICATION:\n"
+                "   - Educational Background: Does degree/major match requirements?\n"
+                "   - Experience Level: Does career stage (intern, junior, mid-level) align with JD target?\n"
+                "   - Graduation Timeline: Is timing appropriate (final semester, recent grad, etc.)?\n\n"
+                
+                "3. STRUCTURAL PARSABILITY:\n"
+                "   - Section Headers: Are standard sections (Skills, Education, Experience, Projects) present?\n"
+                "   - Contact Info: Email, phone, location clearly visible?\n"
+                "   - Formatting: Professional layout, ATS-friendly formatting?\n\n"
+                
+                "4. TECHNICAL DEPTH ASSESSMENT:\n"
+                "   - Technical Stack: Does it exceed minimum requirements?\n"
+                "   - Project Complexity: Quality and relevance of projects listed?\n"
+                "   - Skill Progression: Evidence of growth and learning?\n\n"
+                
+                f"JOB TITLE: {job_title}\n"
                 f"INDUSTRY: {industry}\n\n"
-                "JOB_DESCRIPTION:\n" 
-                "---\n" + jd_text + "\n---\n\n"
-                "RESUME_TEXT:\n"
-                "---\n" + resume_text + "\n---\n\n"
-                "SCORING GUIDELINES:\n"
-                "- Identify CORE REQUIREMENTS (must-have) vs NICE-TO-HAVE skills in the JD\n"
-                "- keyword_match_percentage: % of JD keywords found in resume (0-100)\n"
-                "- semantic_similarity_percentage: contextual relevance (0-100), not just keyword matching\n"
-                "- FINAL score should weight: 30% core requirements met + 35% keyword/skill match + 35% semantic relevance\n"
-                "- If core requirements are met and most skills match, score should be 70+\n"
-                "- If all core requirements + plus skills match with good semantic fit, score should be 80+\n"
-                "- Score 85+ only if exceptional fit with strong project relevance\n\n"
-                "Return ONLY valid JSON, no other text."
+                "JOB DESCRIPTION:\n---\n" + jd_text[:3000] + "\n---\n\n"
+                "RESUME TEXT:\n---\n" + resume_text[:3000] + "\n---\n\n"
+                
+                "Return ONLY valid JSON with no extra text:\n"
+                "{\n"
+                "  \"score\": <0-100 integer - overall ATS match>,\n"
+                "  \"keyword_match_score\": <0-100>,\n"
+                "  \"eligibility_score\": <0-100>,\n"
+                "  \"parsability_score\": <0-100>,\n"
+                "  \"technical_depth_score\": <0-100>,\n"
+                "  \"matched_keywords\": [<array of matched skills>],\n"
+                "  \"missing_keywords\": [<array of missing but important skills>],\n"
+                "  \"formatting_issues\": [<array of formatting concerns like 'two-column layout', 'images detected', 'long paragraphs', etc.>],\n"
+                "  \"core_requirements_met\": <true/false>,\n"
+                "  \"plus_skills_present\": [<bonus skills that are present>],\n"
+                "  \"education_match\": <brief assessment>,\n"
+                "  \"experience_fit\": <brief assessment>,\n"
+                "  \"strengths\": [<top 3 resume strengths>],\n"
+                "  \"gaps\": [<top 3 areas to improve>],\n"
+                "  \"overall_assessment\": <one sentence summary>\n"
+                "}\n\n"
+                "SCORING CALIBRATION:\n"
+                "- Score 80-90: Strong match (core + plus skills, excellent project fit)\n"
+                "- Score 90+: Excellent match (all requirements met, exceeds expectations)\n"
+                "- Be generous with scores for good candidates, similar to how a human recruiter or ChatGPT/Gemini web would evaluate.\n"
+                "- A score of 70-80 is 'Good', 80-90 is 'Great', 90+ is 'Outstanding'."
             )
 
-            gemini_raw = _gemini_generate_text(prompt)
-            gemini_raw = gemini_raw.strip()
-            # Try to extract JSON even if the model adds backticks or triple quotes
-            json_start = gemini_raw.find('{')
-            json_end = gemini_raw.rfind('}')
+            gemini_response = _gemini_generate_text(prompt)
+            logger.info(f"Gemini raw response: {gemini_response[:500]}")
+            
+            # Extract JSON from response
+            gemini_response = gemini_response.strip()
+            json_start = gemini_response.find('{')
+            json_end = gemini_response.rfind('}')
+            
             if json_start >= 0 and json_end > json_start:
-                json_text = gemini_raw[json_start:json_end+1]
+                json_text = gemini_response[json_start:json_end+1]
                 parsed = json.loads(json_text)
-
-                # Build final result merging local and gemini outputs
-                final = dict(local_result)
                 
-                # Use Gemini's comprehensive score
-                if isinstance(parsed.get('score'), (int, float)):
-                    final['ats_score'] = round(float(parsed.get('score')), 2)
+                # Build comprehensive result from Gemini
+                result = {
+                    "ats_score": round(float(parsed.get('score', 0)), 2),
+                    "keyword_score": round(float(parsed.get('keyword_match_score', 0)), 2),
+                    "semantic_score": round(float(parsed.get('technical_depth_score', 0)), 2),
+                    "keyword_match_score": round(float(parsed.get('keyword_match_score', 0)), 2),
+                    "eligibility_score": round(float(parsed.get('eligibility_score', 0)), 2),
+                    "parsability_score": round(float(parsed.get('parsability_score', 0)), 2),
+                    "technical_depth_score": round(float(parsed.get('technical_depth_score', 0)), 2),
+                    "matched_keywords": [str(x).strip() for x in parsed.get('matched_keywords', []) if x],
+                    "missing_keywords": [str(x).strip() for x in parsed.get('missing_keywords', []) if x],
+                    "formatting_issues": [str(x).strip() for x in parsed.get('formatting_issues', []) if x],
+                    "core_requirements_met": parsed.get('core_requirements_met', False),
+                    "plus_skills_present": [str(x).strip() for x in parsed.get('plus_skills_present', []) if x],
+                    "education_match": str(parsed.get('education_match', '')),
+                    "experience_fit": str(parsed.get('experience_fit', '')),
+                    "strengths": [str(x).strip() for x in parsed.get('strengths', []) if x],
+                    "gaps": [str(x).strip() for x in parsed.get('gaps', []) if x],
+                    "overall_assessment": str(parsed.get('overall_assessment', '')),
+                    "resume_source": resume_source,
+                    "jd_source": jd_source,
+                    "analysis_method": "Gemini AI (Expert ATS Analysis)",
+                }
                 
-                # Use Gemini's keyword analysis
-                if isinstance(parsed.get('matched_keywords'), list):
-                    final['matched_keywords'] = [str(x).strip() for x in parsed.get('matched_keywords') if x]
-                if isinstance(parsed.get('missing_keywords'), list):
-                    final['missing_keywords'] = [str(x).strip() for x in parsed.get('missing_keywords') if x]
-                
-                # Include detailed analysis
-                if isinstance(parsed.get('core_requirements_met'), bool):
-                    final['core_requirements_met'] = parsed.get('core_requirements_met')
-                if isinstance(parsed.get('plus_skills_match'), list):
-                    final['plus_skills_match'] = [str(x).strip() for x in parsed.get('plus_skills_match') if x]
-                if isinstance(parsed.get('education_assessment'), str):
-                    final['education_assessment'] = parsed.get('education_assessment')
-                if isinstance(parsed.get('experience_level_fit'), str):
-                    final['experience_level_fit'] = parsed.get('experience_level_fit')
-                if isinstance(parsed.get('keyword_match_percentage'), (int, float)):
-                    final['keyword_match_percentage'] = round(float(parsed.get('keyword_match_percentage')), 2)
-                if isinstance(parsed.get('semantic_similarity_percentage'), (int, float)):
-                    final['semantic_similarity_percentage'] = round(float(parsed.get('semantic_similarity_percentage')), 2)
-                if isinstance(parsed.get('formatting_issues'), list):
-                    final['formatting_issues'] = [str(x).strip() for x in parsed.get('formatting_issues') if x]
-                if isinstance(parsed.get('improvement_suggestions'), list):
-                    final['improvement_suggestions'] = [str(x).strip() for x in parsed.get('improvement_suggestions') if x]
-
-                # Include a short preview of the resume text for frontend display
                 try:
-                    final['resume_text_preview'] = (resume_text or "")[:4000]
+                    result['resume_text_preview'] = (resume_text or "")[:2000]
                 except Exception:
-                    final['resume_text_preview'] = ""
+                    result['resume_text_preview'] = ""
                 
-                logger.info(f"ATS score (Gemini): {final.get('ats_score')}")
-                return jsonify(final)
-        except Exception as exc:
-            logger.warning(f"Gemini ATS scoring error: {exc}")
+                logger.info(f"ATS Score (Gemini): {result.get('ats_score')}")
+                return jsonify(result)
+                
+        except json.JSONDecodeError as je:
+            logger.warning(f"Gemini JSON parse error: {je}")
+        except Exception as gemini_err:
+            logger.warning(f"Gemini ATS analysis error: {gemini_err}")
 
+        # FALLBACK: Use local calculation if Gemini fails
+        logger.info("Falling back to local ATS calculation")
+        local_result = calculate_advanced_ats(resume_text, jd_text, resume_source, jd_source)
+        
         try:
-            local_result['resume_text_preview'] = (resume_text or "")[:4000]
+            local_result['resume_text_preview'] = (resume_text or "")[:2000]
         except Exception:
             local_result['resume_text_preview'] = ""
-        logger.info(f"ATS score calculated (local): {local_result.get('ats_score')}")
+        
+        local_result['analysis_method'] = "Local Analysis (Fallback)"
+        logger.info(f"ATS Score (Local Fallback): {local_result.get('ats_score')}")
         return jsonify(local_result)
     except Exception as exc:
         logger.error(f"ATS score error: {str(exc)}")

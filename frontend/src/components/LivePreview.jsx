@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 
 const TEMPLATE_LABELS = {
   template1: 'Modern Minimal',
@@ -333,15 +333,19 @@ function Template4Preview({ data }) {
   return (
     <div className="h-full w-full bg-white text-slate-900" style={{ minHeight: '297mm' }}>
       <div className="flex" style={{ padding: '22mm 16mm' }}>
-        <aside className="w-[38%] pr-6">
-          <div className="mb-6 border-b pb-4">
+        <aside className="w-[38%] pr-7 pl-1">
+          <div className="mb-6 border-b border-[#d4a5a5] pb-4">
             <h1 className="text-[32px] font-serif font-bold text-[#5d3a6d]">{name || 'Your Name'}</h1>
-            {objective ? <p className="text-[12px] text-slate-600 mt-2 uppercase tracking-wider">{objective}</p> : null}
+            {objective ? (
+              <p className="mt-2.5 text-[11px] leading-relaxed text-slate-600" style={{ fontFamily: 'system-ui, sans-serif' }}>
+                {objective}
+              </p>
+            ) : null}
           </div>
 
           {hasEntries(experience, ['title', 'company', 'description']) ? (
             <section className="mb-6">
-              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b pb-2">Experience</h2>
+              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b border-[#d4a5a5] pb-2">Experience</h2>
               <div className="mt-3 space-y-3">
                 {experience.map((job, idx) => (
                   <div key={`exp-${idx}`} className="pb-2 border-b last:border-0">
@@ -353,30 +357,12 @@ function Template4Preview({ data }) {
               </div>
             </section>
           ) : null}
-
-          {objective ? (
-            <section className="mb-6">
-              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b pb-2">Summary</h2>
-              <p className="mt-2 text-[10px] text-slate-600">{objective}</p>
-            </section>
-          ) : null}
-
-          {visibleSkills.length > 0 ? (
-            <section className="mb-6">
-              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b pb-2">Skills</h2>
-              <ul className="mt-2 text-[10px] text-slate-600 list-disc pl-5">
-                {visibleSkills.map((s, i) => (
-                  <li key={`skill-${i}`}>{s.name}</li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
         </aside>
 
-        <main className="flex-1 pl-6">
+        <main className="flex-1 pl-8">
           {hasEntries(education, ['degree', 'institution']) ? (
-            <section>
-              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b pb-2">Education</h2>
+            <section className="mb-6">
+              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b border-[#d4a5a5] pb-2">Education</h2>
               <div className="mt-3 space-y-3">
                 {education.map((item, idx) => (
                   <div key={`edu-${idx}`} className="pb-2 border-b last:border-0">
@@ -385,6 +371,19 @@ function Template4Preview({ data }) {
                   </div>
                 ))}
               </div>
+            </section>
+          ) : null}
+
+          {visibleSkills.length > 0 ? (
+            <section>
+              <h2 className="text-[12px] uppercase tracking-[1px] text-[#5d3a6d] border-b border-[#d4a5a5] pb-2">Skills</h2>
+              <ul className="mt-3 text-[10px] text-slate-600 list-none pl-0 space-y-1.5">
+                {visibleSkills.map((s, i) => (
+                  <li key={`skill-${i}`} className="relative pl-3 before:absolute before:left-0 before:text-[#d4a5a5] before:content-['•']">
+                    {s.name}
+                  </li>
+                ))}
+              </ul>
             </section>
           ) : null}
         </main>
@@ -459,6 +458,21 @@ export default function LivePreview({ templateId, data, onSwitchTemplate }) {
   const [previewHtml, setPreviewHtml] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const iframeRef = useRef(null)
+
+  const syncIframeHeight = useCallback(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+    try {
+      const doc = iframe.contentDocument
+      if (!doc?.body) return
+      const h = Math.max(doc.body.scrollHeight, doc.documentElement.scrollHeight, 1)
+      const minPx = Math.ceil((297 * 96) / 25.4)
+      iframe.style.height = `${Math.max(h + 8, minPx)}px`
+    } catch {
+      iframe.style.height = `${Math.ceil((297 * 96) / 25.4)}px`
+    }
+  }, [])
 
   // Fetch the server-rendered template HTML for a true preview (debounced).
   useEffect(() => {
@@ -499,15 +513,32 @@ export default function LivePreview({ templateId, data, onSwitchTemplate }) {
     }
   }, [templateId, data])
 
+  useEffect(() => {
+    if (!previewHtml || error) return
+    const t = window.setTimeout(syncIframeHeight, 40)
+    return () => window.clearTimeout(t)
+  }, [previewHtml, error, syncIframeHeight])
+
   const preview = useMemo(() => {
     // Prefer server HTML when available; otherwise fallback to client-side render
     if (previewHtml && !error) {
       return (
         <div className="w-full bg-white text-slate-900 flex justify-center" style={{ minHeight: '297mm' }}>
           <iframe
+            ref={iframeRef}
             title="resume-preview"
             srcDoc={previewHtml}
-            style={{ width: '210mm', height: '297mm', border: '0', display: 'block' }}
+            onLoad={() => {
+              syncIframeHeight()
+              window.setTimeout(syncIframeHeight, 150)
+            }}
+            style={{
+              width: '210mm',
+              minHeight: '297mm',
+              border: '0',
+              display: 'block',
+              height: `${Math.ceil((297 * 96) / 25.4)}px`,
+            }}
             sandbox="allow-same-origin allow-scripts"
           />
         </div>
@@ -527,7 +558,7 @@ export default function LivePreview({ templateId, data, onSwitchTemplate }) {
       default:
         return <Template1Preview data={data} />
     }
-  }, [data, templateId, previewHtml, error])
+  }, [data, templateId, previewHtml, error, syncIframeHeight])
 
   const otherTemplates = TEMPLATE_ORDER.filter((id) => id !== templateId)
 

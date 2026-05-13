@@ -9,7 +9,8 @@ body {
     background-color: #f5f5f5;
     color: #2a2a2a;
     line-height: 1.5;
-    padding: 10px;
+    padding: 8px;
+    overflow-x: hidden;
 }
 
 .page {
@@ -25,7 +26,7 @@ body {
 .left-sidebar {
     width: 38%;
     background-color: #faf7f8;
-    padding: 40px 25px;
+    padding: 36px 28px 40px 30px;
     border-right: 2px solid #d4a5a5;
 }
 
@@ -45,12 +46,17 @@ body {
     letter-spacing: -0.5px;
 }
 
-.job-title {
-    font-size: 12px;
-    color: #666;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+.lead-summary {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    color: #444;
+    font-weight: 400;
+    line-height: 1.55;
+    margin-top: 10px;
+    text-transform: none;
+    letter-spacing: 0.01em;
+    overflow-wrap: anywhere;
+    hyphens: auto;
 }
 
 .sidebar-section {
@@ -117,12 +123,6 @@ body {
     color: #d4a5a5;
 }
 
-.summary-text {
-    font-size: 10px;
-    color: #666;
-    line-height: 1.6;
-}
-
 .skills-list {
     list-style: none;
     margin: 0;
@@ -144,12 +144,11 @@ body {
     color: #d4a5a5;
 }
 
-/* Right Content */
+/* Right Content (single divider comes from .left-sidebar border-right) */
 .right-content {
     flex: 1;
-    padding: 40px 35px;
+    padding: 40px 34px 40px 36px;
     background-color: white;
-    border-left: 2px solid #d4a5a5;
 }
 
 .main-section {

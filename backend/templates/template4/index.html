@@ -12,7 +12,9 @@
         <aside class="left-sidebar">
             <div class="name-box">
                 <h1 class="name">{{ name }}</h1>
-                <p class="job-title">{{ objective }}</p>
+                {% if objective %}
+                <p class="lead-summary">{{ objective }}</p>
+                {% endif %}
             </div>
 
             {% if experience %}
@@ -22,7 +24,7 @@
                 <div class="exp-item">
                     <p class="exp-date">{{ exp.startYear }}{% if exp.endYear %} - {{ exp.endYear }}{% else %} - Current{% endif %}</p>
                     <h3 class="exp-title">{{ exp.title }}</h3>
-                    <p class="exp-company">{{ exp.company }}, {{ exp.company }}</p>
+                    <p class="exp-company">{{ exp.company }}</p>
                     {% if exp.description %}
                     <ul class="exp-bullets">
                         {% for line in exp.description.split('\n') %}
@@ -37,23 +39,6 @@
             </section>
             {% endif %}
 
-            {% if objective %}
-            <section class="sidebar-section">
-                <h2 class="sidebar-title">Summary</h2>
-                <p class="summary-text">{{ objective }}</p>
-            </section>
-            {% endif %}
-
-            {% if skills %}
-            <section class="sidebar-section">
-                <h2 class="sidebar-title">Skills</h2>
-                <ul class="skills-list">
-                    {% for skill in skills %}
-                    <li>{{ skill.name }}</li>
-                    {% endfor %}
-                </ul>
-            </section>
-            {% endif %}
         </aside>
 
         <!-- Right Content -->
@@ -68,6 +53,17 @@
                     <p class="edu-institution">{{ edu.institution }}</p>
                 </div>
                 {% endfor %}
+            </section>
+            {% endif %}
+
+            {% if skills %}
+            <section class="main-section">
+                <h2 class="main-title">Skills</h2>
+                <ul class="skills-list">
+                    {% for skill in skills %}
+                    <li>{{ skill.name }}</li>
+                    {% endfor %}
+                </ul>
             </section>
             {% endif %}
         </main>
