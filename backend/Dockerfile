@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libopenjp2-7-dev \
     libgdk-pixbuf-2.0-0 \
+    libglib2.0-0 \
     shared-mime-info \
     fontconfig \
     fonts-liberation \
