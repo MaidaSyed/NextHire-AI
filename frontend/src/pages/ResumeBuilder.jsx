@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import TemplateSelector from '../components/TemplateSelector'
 import LivePreview from '../components/LivePreview'
+import { apiUrl } from '../utils/api'
 
 const STORAGE_KEY = 'nexthire_resume_builder_v1'
 const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
@@ -436,7 +437,7 @@ function ResumeBuilder() {
     setError('')
     try {
       setAiBusy(true)
-      const res = await fetch('/api/generate-summary', {
+      const res = await fetch(apiUrl('/generate-summary'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skills, experience }),
@@ -463,7 +464,7 @@ function ResumeBuilder() {
 
     try {
       setAiBusy(true)
-      const res = await fetch('/api/improve-text', {
+      const res = await fetch(apiUrl('/improve-text'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: rawText }),
@@ -523,7 +524,7 @@ function ResumeBuilder() {
         },
       }
 
-      const res = await fetch('/api/generate-resume', {
+      const res = await fetch(apiUrl('/generate-resume'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

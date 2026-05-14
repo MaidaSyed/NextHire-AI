@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
+import { apiUrl } from '../utils/api'
 
 const TEMPLATE_LABELS = {
   template1: 'Modern Minimal',
@@ -483,7 +484,7 @@ export default function LivePreview({ templateId, data, onSwitchTemplate }) {
       setLoading(true)
       setError(null)
       try {
-        const resp = await fetch('/api/render-resume-preview', {
+        const resp = await fetch(apiUrl('/render-resume-preview'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ template_id: templateId, data }),
