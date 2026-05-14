@@ -15,7 +15,8 @@ RUN apt-get update && apt-get install -y \
     libffi-dev \
     libjpeg-dev \
     libopenjp2-7-dev \
-    libgdk-pixbuf2.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    shared-mime-info \
     fontconfig \
     fonts-liberation \
   && rm -rf /var/lib/apt/lists/*
