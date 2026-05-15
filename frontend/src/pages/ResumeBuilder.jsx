@@ -599,6 +599,13 @@ function ResumeBuilder() {
               >
                 <span aria-hidden="true">←</span> Back to Home
               </Link>
+              <button
+                  type="button"
+                  onClick={clearAll}
+                  className="rounded-lg border ml-6 border-neon-500/20 bg-emerald-50/5 px-3 py-2 text-xs text-emerald-100/75 hover:border-neon-500/40 hover:text-emerald-50"
+                >
+                  Clear All Data
+                </button>
               <div className="mx-auto max-w-3xl">
               
                 <motion.div

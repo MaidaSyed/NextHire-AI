@@ -16,7 +16,7 @@ const ROLE_OPTIONS = [
 
 const EXPERIENCE_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
 const INTERVIEW_TYPES = ['Technical', 'HR', 'Behavioral', 'Mixed']
-const QUESTION_COUNTS = [5, 10, 15]
+const QUESTION_COUNTS = [2, 10, 15]
 const MAX_ANSWER_LENGTH = 1200
 const API_BASE = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '')
 const USE_PROXY_IN_DEV =
