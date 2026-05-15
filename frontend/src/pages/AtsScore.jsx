@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
+import { apiUrl } from '../utils/api'
 
 const INDUSTRIES = [
   'Technology',
@@ -122,7 +123,7 @@ function AtsScore() {
       // start UI scanning animations
       startAutoScroll()
 
-      const resp = await fetch('/api/ats-score', {
+      const resp = await fetch(apiUrl('/ats-score'), {
         method: 'POST',
         body: form,
       })

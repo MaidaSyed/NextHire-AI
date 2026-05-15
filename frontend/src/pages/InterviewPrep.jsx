@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import ParticlesCanvas from '../components/ParticlesCanvas'
+import { apiUrl, postJson } from '../utils/api'
 
 const ROLE_OPTIONS = [
   'Frontend Developer',
@@ -18,34 +19,6 @@ const EXPERIENCE_LEVELS = ['Beginner', 'Intermediate', 'Advanced']
 const INTERVIEW_TYPES = ['Technical', 'HR', 'Behavioral', 'Mixed']
 const QUESTION_COUNTS = [2, 10, 15]
 const MAX_ANSWER_LENGTH = 1200
-const API_BASE = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '')
-const USE_PROXY_IN_DEV =
-  import.meta.env.DEV &&
-  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(API_BASE)
-
-function apiUrl(path) {
-  const normalized = path.startsWith('/') ? path : `/${path}`
-  if (USE_PROXY_IN_DEV || !API_BASE) {
-    return `/api${normalized}`
-  }
-
-  return `${API_BASE}/api${normalized}`
-}
-
-async function postJson(path, payload) {
-  const response = await fetch(apiUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) {
-    throw new Error(data.error || 'Request failed')
-  }
-  return data
-}
-
 function safeText(value, fallback = '') {
   const text = typeof value === 'string' ? value : String(value ?? '')
   return text.trim() || fallback
